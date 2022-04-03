@@ -39,3 +39,6 @@ kubectl apply -f deployment.yaml
 ```shell
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.7.2/cert-manager.yaml
 ```
+
+### Preview
+![](./img/c1.png)
