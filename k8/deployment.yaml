@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hedwig-deployment
+  labels:
+    app: hedwig
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hedwig
+  template:
+    metadata:
+      labels:
+        app: hedwig
+    spec:
+      containers:
+        - name: hedwig
+          image: openfile/hedwig:0.0.1
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SMTP_USERNAME
+              value: "gobumbumstore@gmail.com"
+            - name: SMTP_PASSWORD
+              value: ""
+---
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: hedwig-service
+#spec:
+#  selector:
+#    app: hedwig
+#  type: LoadBalancer
+#  ports:
+#    - protocol: TCP
+#      port: 8080
+#      targetPort: 8080
+#      nodePort: 30000
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: hedwig-service
+spec:
+  type: NodePort
+  selector:
+    app: hedwig
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hedwig-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  tls:
+    - hosts:
+        - puppetapi.com
+      secretName: letsencrypt
+  rules:
+    - host: puppetapi.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hedwig-service
+                port:
+                  number: 80
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt
+spec:
+  acme:
+    # The ACME server URL
+    server: https://acme-v02.api.letsencrypt.org/directory
+    # Email address used for ACME registration
+    email: burkaydurdu@outlook.com
+    # Name of a secret used to store the ACME account private key
+    privateKeySecretRef:
+      name: letsencrypt
+    # Enable the HTTP-01 challenge provider
+    solvers:
+    - selector: {}
+      http01:
+        ingress:
+          class: nginx
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: puppetapi-com
+  namespace: default
+spec:
+  secretName: puppetapi-com-tls
+  issuerRef:
+    name: letsencrypt
+  commonName: puppetapi.com
+  dnsNames:
+    - puppetapi.com
